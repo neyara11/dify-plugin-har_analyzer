@@ -1,0 +1,64 @@
+identity:
+  name: har_analyze
+  author: ragteam
+  label:
+    en_US: Analyze HAR File
+    zh_Hans: 分析 HAR 文件
+    ru_RU: Анализ HAR файла
+
+description:
+  human:
+    en_US: Analyze HTTP Archive (HAR) files to extract performance metrics, errors, and request details.
+    zh_Hans: 分析 HTTP Archive (HAR) 文件，提取性能指标、错误和请求详情。
+    ru_RU: Анализирует HTTP Archive (HAR) файлы для извлечения метрик производительности, ошибок и деталей запросов.
+  llm: A tool to analyze HTTP Archive (HAR) files. It extracts performance metrics, identifies errors (4xx, 5xx), analyzes resource sizes by type.
+
+parameters:
+  - name: har_file
+    type: file
+    required: true
+    label:
+      en_US: HAR File
+      zh_Hans: HAR 文件
+      ru_RU: HAR файл
+    human_description:
+      en_US: The HAR file to analyze (.har format)
+      zh_Hans: 要分析的 HAR 文件（.har 格式）
+      ru_RU: HAR-файл для анализа (формат .har)
+    llm_description: Upload a HAR file for analysis. HAR (HTTP Archive) files contain network request data captured by browser DevTools.
+    form: form
+
+  - name: output_format
+    type: select
+    required: false
+    options:
+      - value: summary
+        label:
+          en_US: Summary (Text)
+          zh_Hans: 摘要（文本）
+          ru_RU: Сводка (Текст)
+      - value: json
+        label:
+          en_US: Full JSON
+          zh_Hans: 完整 JSON
+          ru_RU: Полный JSON
+      - value: errors_only
+        label:
+          en_US: Errors Only
+          zh_Hans: 仅错误
+          ru_RU: Только ошибки
+    default: summary
+    label:
+      en_US: Output Format
+      zh_Hans: 输出格式
+      ru_RU: Формат вывода
+    human_description:
+      en_US: Format of the analysis output.
+      zh_Hans: 分析输出的格式。
+      ru_RU: Формат вывода анализа.
+    form: form
+
+extra:
+  python:
+    source: tools/har_analyze.py
+    class: HarAnalyzeTool

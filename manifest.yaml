@@ -1,0 +1,35 @@
+version: 0.0.1
+type: plugin
+author: ragteam
+name: har_analyzer
+label:
+  en_US: HAR Analyzer
+  zh_Hans: HAR Analysis
+  ru_RU: HAR Analyzer
+description:
+  en_US: Plugin for analyzing HTTP Archive (HAR) files to extract web performance metrics and insights.
+  zh_Hans: 用于分析 HTTP Archive (HAR) 文件以提取 Web 性能指标和洞察的插件。
+  ru_RU: Плагин для анализа файлов HTTP Archive (HAR) для извлечения метрик производительности веб-сайтов и insights.
+created_at: "2026-02-16T00:00:00Z"
+icon: icon.svg
+
+resource:
+  memory: 134217728
+  permission:
+    storage:
+      enabled: true
+      size: 10485760
+
+plugins:
+  tools:
+    - provider/har_analyzer.yaml
+
+meta:
+  version: 0.0.1
+  arch:
+    - amd64
+    - arm64
+  runner:
+    language: python
+    version: "3.12"
+    entrypoint: main

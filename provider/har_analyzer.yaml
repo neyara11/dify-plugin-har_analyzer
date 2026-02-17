@@ -1,0 +1,22 @@
+identity:
+  author: ragteam
+  name: har_analyzer
+  label:
+    en_US: HAR Analyzer
+    zh_Hans: HAR 分析器
+    ru_RU: HAR Анализатор
+  description:
+    en_US: Analyze HTTP Archive (HAR) files to extract performance metrics, errors, and request details.
+    zh_Hans: 分析 HTTP Archive (HAR) 文件，提取性能指标、错误和请求详情。
+    ru_RU: Анализирует HTTP Archive (HAR) файлы для извлечения метрик производительности, ошибок и деталей запросов.
+  icon: icon.svg
+  tags:
+    - utilities
+
+tools:
+  - tools/har_analyze.yaml
+
+extra:
+  python:
+    source: provider/har_analyzer.py
+    class: HarAnalyzerProvider
