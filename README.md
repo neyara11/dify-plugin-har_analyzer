@@ -207,7 +207,7 @@ har_analyzer_plugin/
 
 - Python 3.12+
 - Dify Plugin SDK
-- haralyzer >= 3.0.0
+- haralyzer >= 2.4.0
 
 ### Локальное тестирование
 
@@ -223,4 +223,4 @@ python -m main
 
 ## Лицензия
 
-MIT License
+Apache 2.0
