@@ -1,4 +1,4 @@
-version: 0.0.1
+version: 0.0.2
 type: plugin
 author: ragteam
 name: har_analyzer
@@ -25,7 +25,7 @@ plugins:
     - provider/har_analyzer.yaml
 
 meta:
-  version: 0.0.1
+  version: 0.0.2
   arch:
     - amd64
     - arm64

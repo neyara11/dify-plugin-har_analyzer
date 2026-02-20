@@ -429,8 +429,21 @@ class HarAnalyzeTool(Tool):
             req_headers = headers_to_dict(request.get("headers", []))
             resp_headers = headers_to_dict(response.get("headers", []))
             
-            # Response body (limited)
-            response_body = content.get("text", "")[:2000] if content.get("text") else ""
+            # Response body (limited) + decode base64 when present
+            response_body = ""
+            raw_text = content.get("text")
+            if raw_text:
+                encoding = (content.get("encoding") or "").lower()
+                if encoding == "base64":
+                    try:
+                        decoded = base64.b64decode(raw_text)
+                        response_body = decoded.decode("utf-8", errors="replace")
+                    except Exception:
+                        # Fallback to raw text if decoding fails
+                        response_body = str(raw_text)
+                else:
+                    response_body = str(raw_text)
+                response_body = response_body[:2000]
             
             entry_data = {
                 'url': url,
@@ -467,6 +480,53 @@ class HarAnalyzeTool(Tool):
                     **entry_data,
                     'error_type': error_type,
                 })
+            else:
+                # Application-level error heuristics even for 2xx/3xx
+                # (HAR from DevTools doesn't include console logs; but API responses may carry error payload)
+                body_lower = response_body.lower() if response_body else ""
+                app_error_type: Optional[str] = None
+
+                # Heuristic 1: JSON with typical error fields
+                if response_body and ("json" in mime_type or response_body.lstrip().startswith(("{", "["))):
+                    try:
+                        parsed = json.loads(response_body)
+                        if isinstance(parsed, dict):
+                            # Common patterns: success=false/ok=false, error/errors/exception/message
+                            if parsed.get("success") is False or parsed.get("ok") is False:
+                                app_error_type = "application_error"
+                            elif any(k in parsed for k in ("error", "errors", "exception", "trace", "traceId", "stack", "stackTrace")):
+                                # If key exists and value is non-empty
+                                for k in ("error", "errors", "exception", "message"):
+                                    v = parsed.get(k)
+                                    if v not in (None, "", [], {}):
+                                        app_error_type = "application_error"
+                                        break
+                                if app_error_type is None and any(parsed.get(k) not in (None, "", [], {}) for k in ("trace", "traceId", "stack", "stackTrace")):
+                                    app_error_type = "application_error"
+                    except Exception:
+                        # ignore json parse errors
+                        pass
+
+                # Heuristic 2: text signatures of server exceptions
+                if app_error_type is None and body_lower:
+                    error_signatures = (
+                        "exception",
+                        "stack trace",
+                        "stacktrace",
+                        "traceback",
+                        "unhandled",
+                        "nullpointerexception",
+                        "internal server error",
+                        "fatal error",
+                    )
+                    if any(sig in body_lower for sig in error_signatures):
+                        app_error_type = "application_error"
+
+                if app_error_type is not None:
+                    all_errors.append({
+                        **entry_data,
+                        'error_type': app_error_type,
+                    })
         
         # Find duplicates
         duplicates = {url: count for url, count in url_counts.items() if count > 1}
