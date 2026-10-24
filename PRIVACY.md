@@ -2,7 +2,7 @@
 
 ## Data Handling
 
-This plugin processes HTTP Archive (HAR) files that you provide directly to it. 
+This plugin processes HTTP Archive (HAR) files that you provide directly to it.
 
 ### What data is processed:
 - HAR file content (JSON format) containing HTTP request/response data
@@ -30,4 +30,4 @@ Users are responsible for:
 
 ## Contact
 
-For questions about this plugin's data handling, please contact the plugin author.
+For questions about this plugin's data handling, please contact the plugin author at neyara@mail.ru.

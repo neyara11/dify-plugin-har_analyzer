@@ -1,6 +1,6 @@
 version: 0.0.2
 type: plugin
-author: ragteam
+author: neyara11
 name: har_analyzer
 label:
   en_US: HAR Analyzer
@@ -12,6 +12,9 @@ description:
   ru_RU: Плагин для анализа файлов HTTP Archive (HAR) для извлечения метрик производительности веб-сайтов и insights.
 created_at: "2026-02-16T00:00:00Z"
 icon: icon.svg
+repo: https://github.com/neyara11/dify-plugin-har_analyzer
+contact: neyara@mail.ru
+privacy: PRIVACY.md
 
 resource:
   memory: 134217728
@@ -33,3 +36,4 @@ meta:
     language: python
     version: "3.12"
     entrypoint: main
+  minimum_dify_version: "1.0.0"

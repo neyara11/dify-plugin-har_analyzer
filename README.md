@@ -1,226 +1,146 @@
-# HAR Analyzer - Dify Plugin
+# HAR Analyzer
 
-Плагин для анализа HTTP Archive (HAR) файлов в Dify.
+Dify plugin for analyzing HTTP Archive (HAR) files — network traces exported from browser DevTools. Give it a `.har` file and get a structured web performance and error report: timing metrics, resource weight, failed requests, and suspicious responses, ready to be fed into an LLM for optimization recommendations.
 
-## Возможности
+Source code: https://github.com/neyara11/dify-plugin-har_analyzer
 
-- 📊 **Метрики производительности**: TTFB, FCP, время загрузки
-- 📦 **Анализ размеров**: HTML, CSS, JavaScript, изображения
-- ❌ **Обнаружение ошибок**: HTTP 4xx, 5xx, прерванные запросы
-- ⚠️ **Предупреждения**: дубликаты запросов, проблемы CORS
-- 📋 **Форматы вывода**: текстовый отчёт, JSON, только ошибки
+## What it analyzes
 
-## Установка
+A HAR file records every HTTP request a page makes: URLs, headers, timings, status codes, and response bodies. The plugin parses this trace and produces:
 
-### Шаг 1: Установка Dify CLI
+**Performance metrics**
+- TTFB (time to first byte) and approximate FCP (first contentful paint)
+- Total load time and number of loaded resources
+- Per-request timing breakdown (DNS, connect, SSL, send, wait, receive)
 
-Dify CLI — это инструмент командной строки для разработки плагинов.
+**Resource breakdown by type**
+- HTML, CSS, JavaScript, images, audio, video, JSON, other
+- Size and load time per type (compression-aware: compressed and decompressed sizes are handled correctly)
 
-```bash
-# Установка через pip
-pip install dify-cli
+**Errors and diagnostics**
+- HTTP 4xx/5xx responses
+- Aborted, blocked, or CORS-failed requests (status 0)
+- Application-level errors hidden behind HTTP 200/3xx — JSON payloads with `error`/`exception`/`success: false` fields and text bodies containing stack traces or "Internal Server Error"
+- For every error: request/response headers and a response body preview
 
-# Или через Homebrew (macOS)
-brew install dify-cli
+**Warnings and insights**
+- Duplicate requests (same URL fetched repeatedly)
+- Top domains by request count
+- Top slowest requests
+- Cache and compression status per request (`Cache-Control`, `ETag`, `Last-Modified`, `Content-Encoding`, 304/cached)
+- Browser name, version, hostname, and User-Agent of the captured session
 
-# Проверка установки
-dify --version
+## How it works
+
+1. Record the session: open browser DevTools → **Network** tab → reproduce the issue → **Export HAR** (Chrome/Edge: download arrow; Firefox: "Save All As HAR").
+2. In Dify, run the **Analyze HAR File** tool and upload the `.har` file.
+3. Pick an output format and pass the result to an LLM node for analysis, or use it directly in a workflow.
+
+All parsing happens inside your Dify deployment. See [PRIVACY.md](PRIVACY.md) for data handling details.
+
+## Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `har_file` | file | Yes | The `.har` file exported from browser DevTools |
+| `output_format` | select | No | `summary` (default), `json`, or `errors_only` |
+
+## Output formats
+
+### `summary` — human-readable report
+
+```
+======================================================================
+📊 HAR ANALYSIS REPORT
+======================================================================
+
+👤 BROWSER & ENVIRONMENT INFO
+  🌐 Browser:        Chrome 120.0.0.0
+  🖥️  Hostname:       example.com
+  📄 Pages Count:    1
+  🔤 User-Agent:     Mozilla/5.0 ...
+
+📈 SUMMARY STATISTICS
+  📊 Total Requests: 45
+  📦 Total Size:     1.50 MB (1,572,864 bytes)
+  🌐 Domains:        8
+  ❌ Errors:         2
+  ⚠️  Warnings:       1
+  🔄 Duplicates:     3
+
+⚡ PERFORMANCE METRICS
+  ⏱️  TTFB (Time to First Byte):  120 ms
+  🎨 FCP (First Contentful Paint): 250 ms
+  ⏰ Total Load Time:              1,500 ms
+  📦 DOM Resources:                45
+
+📋 STATUS CODES ...
+📦 RESOURCE TYPES BREAKDOWN ...
+🌐 TOP DOMAINS ...
+🔄 DUPLICATE REQUESTS ...
+❌ ERRORS (2) ...
+🐌 TOP 15 SLOWEST REQUESTS ...
 ```
 
-### Шаг 2: Установка зависимостей плагина
+### `json` — full structured data for workflows
 
-```bash
-cd har_analyzer/dify_plugin
-
-# Создание виртуального окружения (рекомендуется)
-python -m venv venv
-
-# Активация (Windows)
-venv\Scripts\activate
-
-# Активация (Linux/macOS)
-source venv/bin/activate
-
-# Установка зависимостей
-pip install -r requirements.txt
-```
-
-### Шаг 3: Локальное тестирование (опционально)
-
-Для тестирования плагина перед упаковкой:
-
-1. Откройте Dify → Настройки → Управление плагинами → "Отладка плагина"
-2. Скопируйте отладочный ключ
-3. Создайте файл `.env`:
-
-```bash
-cp .env.example .env
-```
-
-4. Отредактируйте `.env`:
-
-```env
-INSTALL_METHOD=remote
-REMOTE_INSTALL_HOST=debug-plugin.dify.dev
-REMOTE_INSTALL_PORT=5003
-REMOTE_INSTALL_KEY=ваш-отладочный-ключ
-
-# ⚠️ ВАЖНО для локального Dify (self-hosted):
-# Установите FILES_URL для корректной работы с файлами
-FILES_URL=http://api:5001
-```
-
-5. Запустите плагин:
-
-```bash
-python -m main
-```
-
-### Шаг 4: Сборка пакета
-
-**Вариант A: Через Dify CLI (если доступен)**
-
-```bash
-# В директории плагина
-dify plugin package dify_plugin -o har_analyzer.difypkg
-
-# После выполнения появится файл plugin.difypkg
-```
-
-**Вариант B: Через Python-скрипт (если dify CLI недоступен)**
-
-```bash
-# В директории плагина
-python build_package.py
-
-# После выполнения появится файл haranalyzer.difypkg
-```
-
-**Вариант C: Ручное создание архива**
-
-```bash
-# difypkg - это ZIP архив
-cd har_analyzer/dify_plugin
-zip -r haranalyzer.difypkg \
-    manifest.yaml \
-    main.py \
-    requirements.txt \
-    icon.svg \
-    provider/ \
-    _assets/
-
-# Исключите файлы: .env, __pycache__, .pyc, venv/, build_package.py
-```
-
-### Шаг 5: Установка в Dify
-
-**Вариант A: Локальная установка (рекомендуется для тестирования)**
-
-1. Откройте Dify в браузере
-2. Перейдите в **Настройки** → **Плагины**
-3. Нажмите **"Загрузить плагин"**
-4. Выберите файл `plugin.difypkg`
-5. Плагин появится в списке установленных
-
-**Вариант B: Публикация в Marketplace (для публичного доступа)**
-
-1. Опубликуйте код на GitHub
-2. Создайте PR в репозиторий [dify-plugins](https://github.com/langgenius/dify-plugins)
-3. После одобрения плагин появится в Dify Marketplace
-
-## Использование
-
-### Параметры
-
-| Параметр | Тип | Обязательный | Описание |
-|----------|-----|--------------|----------|
-| `har_content` | string | ✅ | Содержимое HAR-файла в формате JSON |
-| `output_format` | select | ❌ | Формат вывода: `summary`, `json`, `errors_only` |
-| `include_entries` | boolean | ❌ | Включить детали всех запросов |
-
-### Форматы вывода
-
-#### Summary (по умолчанию)
-Текстовый отчёт с эмодзи и форматированием:
-```
-📊 HAR Analysis Report
-
-🌐 Hostname: example.com
-🌐 Browser: Chrome 120.0.0.0
-📄 Pages: 1
-
-📈 Performance Metrics:
-  • TTFB: 120 ms
-  • FCP: 250 ms
-  • Total Time: 1500 ms
-
-📦 Resource Sizes:
-  • Total: 1.5 MB
-  • HTML: 45.2 KB
-  • CSS: 120.5 KB
-  • JavaScript: 890.3 KB
-  • Images: 256.8 KB
-```
-
-#### JSON
-Полная структура данных для использования в workflow:
 ```json
 {
-  "total_requests": 45,
-  "total_size_bytes": 1572864,
-  "errors_count": 2,
-  "ttfb_ms": 120,
-  "errors": [...]
+  "analysis_date": "2026-02-16T12:00:00",
+  "user_data": {"browser_name": "Chrome", "hostname": "example.com"},
+  "summary": {"total_requests": 45, "total_size_bytes": 1572864, "errors_count": 2},
+  "performance": {"ttfb": 120, "fcp": 250, "total_time": 1500},
+  "status_codes": {"200": 42, "404": 2, "0": 1},
+  "resource_types": {"html": {}, "css": {}, "javascript": {}, "images": {}},
+  "domains": {"example.com": 30},
+  "errors": [],
+  "warnings": [],
+  "duplicates": {},
+  "top_slowest": []
 }
 ```
 
-#### Errors Only
-Только ошибки и предупреждения для быстрой диагностики.
+Large results are truncated with a note when they exceed 50 KB; use `summary` for a complete overview.
 
-## Пример workflow в Dify
+### `errors_only` — quick diagnostics
+
+Only errors, warnings, and duplicates, each with full request/response headers and a response body preview. Useful for failed-request triage.
+
+## Example workflow
 
 ```
-1. Пользователь загружает HAR файл
+1. User uploads a .har file captured in DevTools
 2. Tool: HAR Analyzer (output_format: json)
-3. LLM анализирует результат и даёт рекомендации
-4. Ответ пользователю с предложениями по оптимизации
+3. LLM node interprets the metrics and error list
+4. Answer with prioritized optimization and fix recommendations
 ```
 
-## Структура плагина
+Typical use cases: website performance audits, regression analysis after a release, diagnosing failed or slow API calls, and feeding network evidence into an incident review.
+
+## Installation
+
+**From the Marketplace** (once published): search for "HAR Analyzer" in Dify → Plugins → Marketplace and click **Install**.
+
+**Manual upload**: Dify → **Settings → Plugins → Install Plugin → Upload**, then select `har_analyzer-<version>.difypkg` from the [releases](https://github.com/neyara11/dify-plugin-har_analyzer) of the source repository.
+
+No API keys, credentials, or external service accounts are required.
+
+## Development
 
 ```
-har_analyzer_plugin/
-├── manifest.yaml          # Метаданные плагина
-├── main.py               # Точка входа
-├── requirements.txt      # Зависимости Python
-├── icon.svg              # Иконка плагина
-├── provider/
-│   ├── har_analyzer.yaml # Описание инструмента
-│   └── har_analyzer.py   # Реализация
-└── _assets/
-    └── privacy.md        # Политика конфиденциальности
+har_analyzer/
+├── manifest.yaml           # Plugin metadata
+├── main.py                 # Entry point
+├── requirements.txt        # Pinned dependencies (dify-plugin, haralyzer, requests)
+├── PRIVACY.md              # Privacy policy
+├── _assets/icon.svg        # Plugin icon
+├── provider/               # Tool provider
+├── tools/har_analyze.*     # HAR analysis tool
+└── readme/                 # Translations
 ```
 
-## Разработка
+Build the package with `python build_package.py` (or `dify plugin package . -o har_analyzer-<version>.difypkg`).
 
-### Требования
-
-- Python 3.12+
-- Dify Plugin SDK
-- haralyzer >= 2.4.0
-
-### Локальное тестирование
-
-```bash
-# Создайте .env файл
-cp .env.example .env
-
-# Заполните DIFY_API_URL и DIFY_API_KEY
-
-# Запустите плагин
-python -m main
-```
-
-## Лицензия
+## License
 
 Apache 2.0

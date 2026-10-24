@@ -1,6 +1,6 @@
 identity:
   name: har_analyze
-  author: ragteam
+  author: neyara11
   label:
     en_US: Analyze HAR File
     zh_Hans: 分析 HAR 文件
